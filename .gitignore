@@ -1,0 +1,6 @@
+/target
+tmp
+snapshots
+project/project
+project/target
+**/*.class
