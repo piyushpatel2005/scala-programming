@@ -4,3 +4,4 @@ snapshots
 project/project
 project/target
 **/*.class
+.idea/
