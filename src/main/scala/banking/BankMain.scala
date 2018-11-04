@@ -1,0 +1,5 @@
+package banking
+
+object BankMain {
+
+}
