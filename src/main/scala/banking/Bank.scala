@@ -5,7 +5,6 @@ class Bank {
   private var _customers: List[Customer] = Nil
   private var _accounts: List[Account] = Nil
   private var nextCustomerNumber = 0
-  private var nextAccountNumber = 0
 
   def addCustomer(fname: String, lname: String, address:Address): Customer = {
     nextCustomerNumber += 7
@@ -15,8 +14,8 @@ class Bank {
   }
 
   def openAccount(c: Customer): Account = {
-    nextCustomerNumber += 13
-    val account = new Account(c, nextAccountNumber.toString)
+
+    val account = Account(c)
     _accounts ::= account
     account
   }
