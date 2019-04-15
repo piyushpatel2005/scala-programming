@@ -1,5 +1,5 @@
 package banking
 
-class Address {
+class Address (lines: List[String]) {
 
 }

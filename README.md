@@ -89,3 +89,27 @@ Case classes don't have class body because the `case` keyword defines all the me
 Check `basics.shapes.ShapesDrawingActor`. There we define Messages object that defines most of the mssages we'll send between actors. They work like signals to trigger different behaviour. The case class `Response` is used to send arbitrary string mesage to a sender. In Actor, we need to implement `receive()` method which defines how to handle incoming messages.
 
 Akka guarantees that while each message is being processed, the code won't be preemted by another thread, so the handler code is inherently thread-safe. The body of `receive` method is literal syntax for PartialFunction. **Partial Functions** are partial in the sense that they aren't defined for all possible inputs. They include pattern matching. If function is called with an input that doesn't match any of the case clauses, a MatchError is thrown at runtime. The `case` expressions don't need to be wrapped in curly braces because the next case keyword provide unambiguous boundaries. 
+
+## Variables
+
+Scala allows to initialize variables as immutable or mutable.
+
+```scala
+val array: Array[String] = new Array(5)
+array = new Array(2) // this fails
+array(0) = "Hello" // works
+// Define mutable primitive variable
+var stockPrice: Double = 100.0
+stockPrice = 200.0 // works, here the value is changed not the object reference
+```
+
+```scala
+class Person(val name: String, var age: Int)
+val p = new Person("Piyush Patel", 29)
+p.name // Piyush Patel
+p.age // 29
+p.name = "Another Patel" // fails
+p.age = 33 // works
+```
+
+Note: Prefer immutable values whenever possible
