@@ -22,3 +22,6 @@ def doWork(index:Int) = {
     case th: Throwable  => println(s"Failure! returned $th")
   }
 }
+
+sleep(1000)
+println("Finished")
