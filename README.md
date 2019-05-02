@@ -490,3 +490,239 @@ val s = "%02d: name = %s".format(5, "Piyush Patel")
 
 Java has interfaces which let you declare but not define methods. Scala replaces interfaces with traits. Simply, traits can be thought of as interfaces that also give you the option of defining the methods you declare. Traits can also declare and optionally define instance fields (not only static), you can declare and optionally define type values. Traits also enable true composition of behavior (mixins) that is not possible in Java before Java 8.
 
+[Traits example](src/main/scala/objectoriented/traits.sc)
+
+To mix in traits, we use `with` keyword. We can mix in as many as we want. In the following example, we modify the behaviour of work by injecting logging. 
+
+[Logging with traits](src/main/scala/objectoriented/logging.sc)
+
+We are not chaning its contract with clients. If we need multiple instances of *ServiceImportante* with *StdoutLogging*, we could declare a class.
+
+```scala
+class LoggedServiceImportante(name: String) extends ServiceImportante(name) with StdoutLogging {...}
+```
+
+We need to use **override** keyword when we override parent class methods.
+
+## Pattern Matching
+
+Scala's pattern matching is similar to `switch..case` statements in other languages. It can include types, wildcards, sequences, regular expressions and even deep inspections of an object's state. Pattern matching can be used in several code contexts.
+
+[Simple match example](src/main/scala/objectoriented/match-boolean.sc)
+
+When writing *PartialFunctions*, we aren't required to match all possible values because they are intentionally partial. Matches are eager so more specific clauses must appear before less specific clauses. The default clause must be the last one. Matching on floating point literal is a bad idea, as rounding errors mean two values that appear to be the same often differ in the least significant digits. We can also replace placeholder variables with an underscore sign.
+
+```scala
+case _: Int => "other int: " + x
+```
+
+The compiler assumes that a term that starts with a capital letter is a type name, while a term that begins with a lowercase letter is assumed to be the name of a variable that will hold an extracted or matched value.
+
+[Match surprise](src/main/scala/objectoriented/match-surprise.sc)
+
+In case clauses, a term that begins with a lowercase letter is assumed to be the name of a new variable that will hold an extracted value. To refer to a previously defined variable, enclose it in backticks.
+
+If we want to match more than one type of variable in a single case clause, we can use pipe symbol to match multiple types.
+
+```scala
+case _:Int | case _: Double => "a number: " + x
+```
+
+The Scala library has an object called *Nil* for lists and it matches all empty sequences.
+
+[Pattern match with List](src/main/scala/objectoriented/match-list.sc)
+
+[Pattern match with Tuples](src/main/scala/objectoriented/match-tuple.sc)
+
+Similar to for comprehension guards, we can have match guards which will match based on logical condition.
+
+```scala
+for (i <- Seq(1,2,3,4)) {
+  i match {
+    case _ if i%2 == 0 => println(s"even: $i")
+    case _ => println(s"odd: $i")
+  }
+}
+```
+
+We can also do pattern matching on case classes.
+
+[Pattern matching on Case classes](src/main/scala/objectoriented/match-deep.sc)
+
+[Deep matching with Tuples](src/main/scala/objectoriented/match-deep-tuple.sc)
+
+A case class gets a companion object that has a factory method named `apply`, which is used for construction. Similarly, there is another method `unapply`, used for extraction or destruction. This extraction method is also used for pattern-match expressions. Scala looks for `Person.unapply` and `Address.unapply` and calls them. All unapply methods return an `Option[TupleN[...]]` where N is number of values that can be extracted from the object.
+
+```scala
+person match {
+  case Person("Alice", 25, Address(_, "Chicago", _)) => ...
+}
+```
+
+The companion object for Person class looks as below:
+
+```scala
+object Person {
+  def apply(name: String, age: Int, address: Address) = new Person(name, age, address)
+  def unapply(p: Person): Option[Tuple3[String, Int, Address]] = Some((p.name, p.age, p.address))
+    ... ...
+}
+```
+
+We do  not need to expose all the fields of the instance if we don't want to. The compiler then extracts those tuple elements for comparison with literal values. To gain performance benefits, Scala 2.11.1 relaxed the requirement that unapply method return an Option[T]. It can now return any type if it has following methods.
+
+```scala
+def isEmpty: Boolean
+def get: T
+```
+
+We can use tuple literal syntax to represent return type.
+
+
+```scala
+// These are all same
+val t1: Option[Tuple3[String, Int, Address]] = 
+val t2: Option[(String, Int, Address)] 
+```
+
+Person.unapply and TupleN.unapply already know how many things are in their instances, three and N. If we want to support non-empty collection of arbitrary length, Scala defines a special singleton object named `+:.`. It has just one method, the `unapply` method the compiler needs for extraction.
+
+
+[Infix notation](src/main/scala/objectoriented/infix.sc)
+
+For lists, if you want to process the sequence elements in reverse, the library object `:+` allows you to match on the end elements and work backward.
+
+[Match in reverse sequence](src/main/scala/objectoriented/match-reverse-seq.sc)
+
+Nils come first and the methods bind to the left. We can check forward sequence and reverse sequence methods.
+
+
+```scala
+def seqToString[T](seq: Seq[T]): String = seq match {
+  case head +: tail => s"$head +: " + seqToString(tail)
+  case Nil => "Nil"
+}
+
+def reverseSeqToString[T](l: Seq[T]): String = l match {
+  case prefix :+ end => reverseSeqToString(prefix) + s" :+ $end"
+  case Nil => "Nil"
+}
+```
+
+If you want more flexibility to return a sequence extracted items, rather than a fixed number of them, we can use `unapplySeq` method.
+
+[Matching with Seq unapplySeq method](src/main/scala/objectoriented/match-seq-unapplyseq.sc)
+
+[Matching without Seq unapplySeq method](src/main/scala/objectoriented/match-seq-without-unapplyseq.sc)
+
+Working with sliding windows is so useful that Seq gives us two methods to create them.
+
+```scala
+val seq = Seq(1,2,3,4,5)
+val slide2 = seq.sliding(2) // create two element lists with sliding of 1 element
+slide2.toSeq //  converts the iterator into a Stream, a lazy list that evaluates its head eagerly, but only evaluates the tail elements on demand.
+slide2.toList // evalutes the whole iterator eagerly, creating a List
+seq.sliding(3,2).toList // create three element lists with sliding of 2 elements
+```
+
+#### Matching on variable argument lists
+
+Suppose we want to create a tool to interoperate with SQL and want a case class to represent the WHERE foo IN (val1, val2, ...) SQL clause.
+
+[Match variable argument list](src/main/scala/objectoriented/match-vararglist.sc)
+
+Scala allows matching on regular expressions.
+
+[Match regex](src/main/scala/objectoriented/match-regex.sc)
+
+If you want to extract values from an object and also want to assign variable to the whole object itself.
+
+[Match deep to objects](src/main/scala/objectoriented/match-deep2.sc)
+
+Pattern matching can also work on types.
+
+[Match types](src/main/scala/objectoriented/match-types.sc)
+
+To solve, type erasure issues, we can use collection first and then use a nested match on the head element to determine the type.
+
+[Match types to overcome type erasure](src/main/scala/objectoriented/match-types2.sc)
+
+#### Sealed Hierarchies
+
+If declared class is sealed, the only allowed subtypes must be defined in the same file.
+
+[Sealed classes and hierarchy](src/main/scala/objectoriented/http.sc)
+
+When pattern matching on an instance of a sealed base class, the match is exhaustive if the case clauses cover all the derived types defined in the same source file. Avoid using *sealed* if the type hierarchy is at all likely to change. Although, we can use Enumeration values for above HttpMethod subclasses. Avoid enumerations when pattern matching is required. The compiler can't tell if the matches are exhaustive. Pattern matching can be used even for defining values including in for comprehension.
+
+```scala
+val Person (name, age, Address(_, state, _)) = Person("Dean", 29, Address("1 Scala Way", "CA", "USA"))
+// above statement results in extraction of values for name, age, state
+
+val head +: tail = List(1,2,3) // head = 1
+val head1 +: head2 +: tail = Vector(1,2,3) // head1=1, head2=2, tail = Vector(3)
+
+val Seq(a,b,c) = List(1,2,3,4) // MatchError
+```
+
+
+We can also use pattern matching in if clauses.
+
+```scala
+val p = Person("Dean", 29, Address("1 Scala Way", "CA", "USA"))
+if(p == Person("Dean", 29, Address("1 Scala Way", "CA", "USA"))) "yes" else "no"
+```
+
+There is an internal function `$eq$eq` that's used for the `==` test. 
+If we have a function that takes a sequence of integers and returns the sum and the count of elements in a tuple, we can have a function as below.
+
+```scala
+def sum_count(ints: Seq[Int]) = (ints.sum, ints.size)
+val (sum, count) = sum_count(List(1,2,3,4,5))
+```
+
+Another use of pattern matching and `case` clauses is to make function literals of complex arguments easiers to use:
+
+
+```scala
+case class Address(street: String, city: String, country: String)
+case class Person(name: String, age: Int)
+val as = Seq(
+  Address("1 Scala Way", "CA", "USA"),
+  Address("2 Clojure Lane", "Othertown", "USA")
+)
+val ps = Seq(
+  Person("Buck Trends", 29),
+  Person("Clo Jure", 28)
+)
+val pas = ps zip as
+
+// Ugly way 
+pas map { tup =>
+  val Person(name, age) = tup._1
+  val Address(street, city, country) = tup._2
+  s"$name (age: $age) lives at $street, $city in $country"
+}
+
+// Nicer way with partial function
+pas map {
+  case (Person(name, age), Address(street, city, country)) => s"$name (age; $age) lives at $street, $city in $country"
+}
+
+```
+
+Pattern matching is a powerful tool for extracting data inside data structures. We can control extracting information using pattern matching. We can customize `unapply` method to control the state exposed. 
+
+## Implicits
+
+Implicits are a powerful feature in Scala. They are used to reduce boilerplate, to simulate adding new methods to existing types, and to support the creation of domain-specific languages (DSLs). Implicits are controversial because they are nonlocal in the source code. We can import implicit values and methods into the local scope, except for those that are imported automatically through `Predef`. Once in scope, an implicit might be invoked by the compiler to populate a method argument or to convert a provided argument to the expected type. When reading code it becomes difficult to understand. When an implicit argument is omitted, a type-compatible value will be used from the enclosing scope, if available. Otherwise, a compiler error occurs.
+
+```scala
+def calcTax(amount: Float)(implicit rate: Float): Float = amount * rate // Here rate is implicit
+implicit val currentTaxRate = 0.08F // this value will be used for rate
+val tax = calcTax(50000F) // 4000.0
+```
+
+If we have a situation where we want to populate several fields, we can also use implicit methods.
+
+[Implicit arguments](src/main/scala/objectoriented/implicit-args.sc)
