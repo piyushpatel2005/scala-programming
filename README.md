@@ -726,3 +726,100 @@ val tax = calcTax(50000F) // 4000.0
 If we have a situation where we want to populate several fields, we can also use implicit methods.
 
 [Implicit arguments](src/main/scala/objectoriented/implicit-args.sc)
+
+`Predef` defines a method called `implicitly`. Combined with a type signature addition, it provides a useful shorthand way of defining method signatures that take a single implicit argument, where that argument is a parameterized type.
+
+[Example of implicitly](src/main/scala/objectoriented/implicitly-args.sc)
+
+Whatever argument is passed to the method for the implicit argument is resolved by *implicitly*. It's important to use implicits wisely and sparingly. 
+
+#### Implicit uses
+
+Implicit argument list is used to pass an `ExecutionContext` to `Future.apply` method. This way it is useful for **passing execution contexts**.
+
+```scala
+apply[T](body: => T)(implicit executor: ExecutionContext): Future[T]
+```
+
+Besides passing contexts, implicit arguments can be used to **control capabilities**. For example, an implicit user session argument might contain authorization tokens that control whether or not certain API opeartions can be invoked on behalf of the user or to limit data visibility. Suppose you are constructing a menu for a user interface and some menu items are shown only if the user is logged in, while others are shown only if the user isn't logged in.
+
+```scala
+def createMenu(implicit session: Session): Menu = {
+  val defaultItems = List(helpItem, searchItem)
+  val accountItems = if(session.loggedin()) List(viewAccountItem, editAccountItem) else List(loginItem)
+  Menu(defaultItems ++ accountItems)
+}
+
+```
+
+Suppose we have a method with parameterized types and want to **constrain the allowed types** that can be used for the type parameters. If the types we want to permit are all subtypes of a common supertype, we can use OOP and avoid implicits. Earlier, we saw such implementation in [manage object](src/main/scala/basics/TryCatchArm.scala). However, this technique doesn't help when there is no common superclass. For such situation, we can use implicit argument to limit the allowed types. Scala Collections API uses this to solve design problem.
+
+Implicit can also be used for implicit conversions.
+[Implicit conversions](src/main/scala/objectoriented/implicit-conversions.sc)
+
+The convention is to put implicit values and conversions into a special package named `implicits` or an object named `Implicits` except for those defined in companion objects. This is for clarity.
+
+Scala has several implicit wrapper types for Java types like String and Array. For example, methods below appear to be working on String, but they are implemented by WrappedString
+
+```scala
+val s = "Scala is fun"
+s.reverse
+s.capitalize
+s.foreach(c => print(s"$c-"))
+```
+
+The implicit conversion for the built-in "Wrapped" types are always in scope. They are defined in `Predef`. 
+
+We can define String interpolation methods using implicits. For example,
+
+```scala
+val name = ("Buck", "Trends")
+println(s"Hello, ${name._1} ${name._2}")
+```
+
+When compiler sees expression like `x"foo bar"`, it looks for an `x` method in `scala.StringContext`. So, it will be translated to this:
+
+```scala
+StringContext("Hello, ", " ", "").s(name._1, name._2)
+```
+
+The arguments to `StringContext.apply` are the parts around the `${...}` expressions.
+
+[Custom String interpolator](src/main/scala/objectoriented/custom-string-interpolator.sc)
+
+Implicit classes must be defined inside objects to limit their scope to limit their scope. The zip method on collections is a way to line up the values between two collections. The result of zip will size equal to the minimum of the two collections.
+
+```scala
+val keys = List("a", "b", "c", "d")
+val values = List("A",123, 3.14159)
+val keysValues = keys zip values // this will have size 3
+```
+
+Scala support OOP inheritance and polymorphism. However, sometimes it's required that we implement required methods in our defined class only and don't carry around the burden defined in the super classes. Then, Scala supports mixin features to implement required behavior. 
+
+**Type classes** help us avoid the temptation of creating "kitchen-sink" abstractions, like Java's Object because we can add behavior on ad-hoc basis. Type classes in Haskell define the equivalent of an interface, then concrete implementations of it for specific types. The Type Class Pattern in Scala adds the missing interface piece that Java does't provide.
+
+[toJSON type class](src/main/scala/objectoriented/toJSON-type-class.sc)
+
+Scala doesn't allow *implicit* and *case* keywords together. We used this method to add methods to existing classes. This capability is *extension methods*. This is also called *ad hoc polymorphism* because the polymorphic behavior of `toJSON` is not tied to the type system.
+
+### Disadvantages of implicits
+
+The extra code involved in defining implicits is extra work developer has to do and the compiler must work harder to process implicits. A project that uses implicits heavily is slow to build. Implicit conversions also  incur extra runtime overhead due to layers of indirection from the wrapper types
+
+Here are some **tips**
+
+Always specify the return type of an implicit conversion method. If you define a + method on a type and attempt to use it on an instance that actually isn't of the correct type, the compiler will instead call the `toString` on the instancee and then call String + operation. So, you may get mysterious error about a String being the wrong type.
+
+**When Scala looks for implicits**, it follows a sequence of sophisticated rules for the search.
+
+- Any type-compatible implicit value that doesn't require a prefix path. In other words, it is defined in th same scope, such as within the same block of code, within the same type, within the companion object (if any), and within parent type.
+- An implicit value that was imported into the current scope.
+- In some cases, several possible matches are type compatible. The most specific match wins. For example, if the type of an implicit argument is Foo, then an implicit value in scope of type Foo will be chosen over an implicit value of type AnyRef.
+- If two or more implicit values are ambiguous, such as they have the same specific type, it triggers a compiler error.
+
+## Scala's Built-in Implicits
+
+Scala library has more than 300 implicit methods, values and  types. Any of the companion objects for `AnyVal` types have widening conversions, such as converting an Int to a Long. They are like `toX` methods. BigInt and BigDecimal have converters from many of the AnyVal types and from the corresponding Java implementations. Option can be converted to a list of zero or one items. Scala uses Java's types including `Array[T]` and `String`. There are corresponding `ArrayOps[T]` and `StringOps` types that provide the operations commonly defined for all Scala collections. Most of these conversions are defined in `Predef`. Some of these definitions have the `@inline` annotation which encourages the compiler to try especially hard to inline the method call. The `scala.collection.convert` package has several traits that add conversion methods between Java and Scala collections. We can use methods like `asJava` or `asScala` to convert Java to Scala and vice-a-versa.
+
+Sorting on collections is a common task. There are many implicits for `Ordering[T]`. The `scala.concurrent.duration` package provides useful ways of defining time durations. Finally `Process` supports operating systems processes analogous to running UNIX shell commands.
