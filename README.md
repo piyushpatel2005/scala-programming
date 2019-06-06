@@ -823,3 +823,7 @@ Always specify the return type of an implicit conversion method. If you define a
 Scala library has more than 300 implicit methods, values and  types. Any of the companion objects for `AnyVal` types have widening conversions, such as converting an Int to a Long. They are like `toX` methods. BigInt and BigDecimal have converters from many of the AnyVal types and from the corresponding Java implementations. Option can be converted to a list of zero or one items. Scala uses Java's types including `Array[T]` and `String`. There are corresponding `ArrayOps[T]` and `StringOps` types that provide the operations commonly defined for all Scala collections. Most of these conversions are defined in `Predef`. Some of these definitions have the `@inline` annotation which encourages the compiler to try especially hard to inline the method call. The `scala.collection.convert` package has several traits that add conversion methods between Java and Scala collections. We can use methods like `asJava` or `asScala` to convert Java to Scala and vice-a-versa.
 
 Sorting on collections is a common task. There are many implicits for `Ordering[T]`. The `scala.concurrent.duration` package provides useful ways of defining time durations. Finally `Process` supports operating systems processes analogous to running UNIX shell commands.
+
+[Functional Programming](README2.md)
+
+[Testing Scala code](TESTING.md)

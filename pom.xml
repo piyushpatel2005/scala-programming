@@ -132,6 +132,12 @@
             <scope>${lib.scope}</scope>
         </dependency>
 
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>1.6.2</version>
+        </dependency>
+
 
         <!-- https://mvnrepository.com/artifact/MrPowers/spark-fast-tests -->
         <!--<dependency>-->
