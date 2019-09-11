@@ -116,4 +116,83 @@ val hello = cat1("Hello ") // no underscore after first argument gives error
 
 ```
 
-For a function with more than one argument list, you can define a new function if you omit one or more of the trailing arguments. 
+For a function with more than one argument list, you can define a new function if you omit one or more of the trailing arguments.
+A **partially applied function** is an expression with some, but not all of a function's argument list applied (provided), returning a new function that takes the remaining argument lists. A **partial function** is a single-argument function that is not defined for all values of the type of its argument.
+ 
+ ### Currying
+ 
+ Currying transforms a function that takes multiple arguments into a chain functions, each taking a single argument. In Scala, curried functions are defined with multiple argument lists, each with a single argument.
+ 
+ ```scala
+ def cat1(s1: String)(s2: String) = s1 + s2
+ def cat2(s1: String) = (s2: String) => s1 + s2 // cat2 returns a single argument function
+ val cat2hello = cat2("Hello ") // returns a single argument function
+ cat2hello("World!") // Hello World!
+ cat1("foo")("bar") // foobar
+ cat2("foo")("bar") // foobar, same result as above
+ ```
+ 
+ We can also convert methods that take multiple arguments into a curried form using `curried` method.
+ 
+ 
+ ```scala
+ def cat3(s1: String, s2: String) = s1 + s2
+ cat3("hello", "world") // helloworld
+ val cat3Curried = (cat3 _).curried
+ cat3curried("Hello")("world") // Helloworld
+ val f1: String => String => String = (s1: String) => (s2: String) => s1 + s2
+ val f2: String => (String => String) = (s1: String) => (s2: String) = s1 + s2
+ f1("hello")("world") // helloworld
+ f2("hello")("world") // helloworld
+ ```
+ 
+ The curried function can be uncurried using `uncurried` method.
+ 
+ ```scala
+ val cal3Uncurried = Function.uncurried(cat3Curried)
+ cat3Uncurried("hello", "world") // helloworld
+ val ff1 = Function.uncurried(f1)
+ ff1("hello", "world") // helloworld
+ ```
+ 
+ A practical use for currying is to specialize functions for particular types of data.
+ 
+ 
+ ```scala
+ def multiplier(i: Int)(factor: Int) = i * factor
+ val byFive = multiplier(5)_
+ val byTen = multiplier(10) _
+ byFive(2) // 10
+ byTen(2) // 20
+ 
+ // call method with three arguments using three element tuple
+ def mult(d1: Double, d2: Double, d3: Double) = d1 * d2 * d3
+ val d3 = (2.2, 3.3, 4.4)
+ mult(d3._1, d3._2, d3._3)
+ // OR, better
+ val multTupled = Function.tupled(mult _)
+ multTupled(d3) // same output but different syntax
+ val multUnTupled = Function.untupled(multTupled) // revert back
+ ```
+ 
+ We can use transformations between partial functions and functions that return options.
+ 
+```scala
+val finicky: PartialFunction[String, String] = {
+  case "finicky" => "FINICKY"
+}
+finicky("finicky") // FINICKY
+finicky("other") // MatchError
+val finickyOption = finicky.lift // now it returns Option
+finickyOption("finicky") // Some(FINICKY)
+finickyOption("other") // None
+val finicky2 = Function.unlift("finickyOption") // now similar to finicky function
+```
+ 
+If we have a partial function and we don't like the idea of an exception being thrown, we can lift the function into one that returns an Option instead.
+
+### Functional Data Structures
+
+Functional programs put greater emphasis onthe use of a core set of data structures and algorithms, compared to object languages. The proliferation of ad hoc classes undermines the code reuse. Functional programs tend to more concise and achieve better code reuse compared to object programs. The core set typically includes collections like lists, vectors and arrays, maps and sets. Each collection supports side-effect free functions, called *combinators* such as map, filter, fold, etc.
+
+Sequential data structures are traversable

@@ -1,0 +1,7 @@
+Count of gold medallists by country:
+CAN - 1
+CHN - 2
+Count of gold medallists by event type:
+Diving - 1
+Rowing - 2
+End of processing.

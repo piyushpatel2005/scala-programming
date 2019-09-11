@@ -1,0 +1,8 @@
+add,3,loaf of bread
+add,2,jug of milk
+list
+buy,2,loaf of bread
+add,4,loaf of bread
+buy,3,jug of milk
+buy,1,stick of butter
+list
