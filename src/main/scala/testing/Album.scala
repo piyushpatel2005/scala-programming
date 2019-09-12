@@ -10,4 +10,6 @@ class Album(val title: String, val year: Int, val tracks: Option[List[Track]], v
   def ageFrom(now: Int) = now - year
 
   def period = tracks.getOrElse(Nil).map(_.period).foldLeft(Period.ZERO)(_.plus(_))
+
+  def getArtist = this.acts
 }

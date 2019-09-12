@@ -2,6 +2,7 @@ package basics.shapes.shapes
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import com.typesafe.config.ConfigFactory
+import org.apache.commons.cli.Options
 
 private object Start
 
@@ -20,7 +21,9 @@ object ShapesDrawingDriver {
     driver ! Start
   }
 }
+
 class ShapesDrawingDriver(drawerActor: ActorRef) extends Actor {
+
   import Messages._
 
   override def receive: Receive = {
