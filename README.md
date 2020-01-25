@@ -13,6 +13,10 @@ val anotherName: String = "Piyush"
 anotherName = "Ishit" // not allowed
 ```
 
+## Notes
+
+[Scala Basics](notes/basics.md)
+
 ## Using SBT
 
 ```shell
@@ -824,6 +828,8 @@ Scala library has more than 300 implicit methods, values and  types. Any of the 
 
 Sorting on collections is a common task. There are many implicits for `Ordering[T]`. The `scala.concurrent.duration` package provides useful ways of defining time durations. Finally `Process` supports operating systems processes analogous to running UNIX shell commands.
 
-[Functional Programming](README2.md)
 
-[Testing Scala code](TESTING.md)
+[Functional Programming](notes/README2.md)
+
+[Testing Scala code](notes/TESTING.md)
+

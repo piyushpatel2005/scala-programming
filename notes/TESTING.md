@@ -254,14 +254,14 @@ To run the test in SBT, `test-only AlbumSpecAll -- -n construction`
 
 It is another type of Spec available in ScalaTest. It makes heavy use of the items when, should and can with the ability to combine these words with any means possible. These methods belong to String by use of `implicit` wrapper.
 
-[WordSpec example](src/test/scala/testing/AlbumWordSpec.scala)
+[WordSpec example](../src/test/scala/testing/AlbumWordSpec.scala)
 
 ### FeatureSpec
 
 is a test that categorizes a test in a set of features. Each feature must have a unique string to describe the desired feature of the software that is being tested.
 
 Options in Scala are a near replacement for null.
-[FeatureSpec example](src/test/scala/testing/AlbumFeatureSpec.scala)
+[FeatureSpec example](../src/test/scala/testing/AlbumFeatureSpec.scala)
 
 ### FreeSpec
 
@@ -283,7 +283,7 @@ The use of `must`, `should` or `can` has nothing to do with MustMatchers or Shou
 
 ScalaTest supports JUnit testing using a JUnitSuite trait. For this, we have to include junit library in the project. For JUnit, there are annotations like `@Before` for setting up objects before each test method and `@After` for tearing down objects after each method.
 
-[JUnit example](src/test/scala/testing/ArtistJUnitSuite.scala)
+[JUnit example](../src/test/scala/testing/ArtistJUnitSuite.scala)
 
 ### TestNGSuite
 
@@ -291,7 +291,7 @@ TestNG is popular Java-based testing framework. It brought ideas to Java testing
 
 In below example, `testTheStringLength` will now become two tests.
 
-[TestNG example](src/test/scala/testing/ArtistTestNGSuite.scala)
+[TestNG example](../src/test/scala/testing/ArtistTestNGSuite.scala)
 
 In TestNG, tagging is called groups.
 
@@ -313,24 +313,24 @@ Each test can be using same set of object dependencies or data in each test. Fix
 
 [AlbumFixtureSpec example](src/test/scala/testing/)
 
-[AlbumMutableFixtureSpec example](src/test/scala/testing)
+[AlbumMutableFixtureSpec example](../src/test/scala/testing)
 
 ### Fixture Traits
 
 Alternatively, ScalaTest can be used to create a custom Fixture trait in order to ensure that each test gets a unique subject to test. Every trait that is mixed into an object retains its own methods and is not shared. 
 
-[Fixture Trait with Album](src/test/scala/testing/AlbumFixtureTraitSpec.scala)
+[Fixture Trait with Album](../src/test/scala/testing/AlbumFixtureTraitSpec.scala)
 
 Using a trait for fixture encapsulates all the fixtures required per test. To make use of the fixture, we need to instantiate trait in each test.
 
 
 If we need **one instance per test**, we can use trait `OneInstancePerTest`.
 
-[OneInstancePerTest example](src/test/scala/testing/AlbumListOneInstancePerTestFreeSpec.scala)
+[OneInstancePerTest example](../src/test/scala/testing/AlbumListOneInstancePerTestFreeSpec.scala)
 
 **BeforeAndAfter** trait allows to control what gets initialized and what gets torn down with a test.
 
-[BeforeAndAfter Fixture](src/test/scala/testing/AlbumBeforeAndAfterFixtureSpec.scala)
+[BeforeAndAfter Fixture](../src/test/scala/testing/AlbumBeforeAndAfterFixtureSpec.scala)
 
 ## Specs2
 
@@ -586,4 +586,4 @@ To install EasyMock, add easymock dependency to `build.sbt`
 
 EasyMock was originally used only to mock interfaces in Java. Newer EasyMock can mock actual concrete class as well. The example below tests a class named `JukeboxStorageService` whose purpose is to persist the contents of a Jukebox into any kind of database.
 
-[EasyMock example](src/test/scala/testing/JukeboxStorageServiceEasyMockSpec.scala)
+[EasyMock example](../src/test/scala/testing/JukeboxStorageServiceEasyMockSpec.scala)

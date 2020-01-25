@@ -10,13 +10,13 @@ A function that returns Unit can only perform side effects. It can only modify m
 
 The operation passed to `reduce` function must be associative.
 
-[Closure example](src/main/scala/functional/hofs-closure-example.sc)
+[Closure example](../src/main/scala/functional/hofs-closure-example.sc)
 
-[Closure example 2](src/main/scala/functional/hofs-closure-example2.sc)
+[Closure example 2](../src/main/scala/functional/hofs-closure-example2.sc)
 
 We cam have multiplier as method inside an object. When a method is used where a function is required, we say that Scala lifts the method to be a function.
 
-[Example 3 Functions as methods](src/main/scala/functional/function-as-method.sc)
+[Example 3 Functions as methods](../src/main/scala/functional/function-as-method.sc)
 
 **Function** is an operation that is named or anonymous and its code is not evaluated until it is called. **Lambda** is an anonymous function. It may or may not have free variables in its definition. **Closure** is a function, anonymous or named, that closes over its environment to bind variables in scope to free variables within the function.
 
