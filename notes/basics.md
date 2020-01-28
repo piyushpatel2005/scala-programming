@@ -901,3 +901,709 @@ byNameAssert(5 > 3)
 ```
 
 A by-name type is only allowed for parameters. There is no such thing as a by-name variable or a by-name field.
+
+## Composition and Inheritance
+
+Composition means one class holds reference to another, using the referenced class to help it fulfill its mission. Inheritance is superclass/subclass relationship.
+
+```scala
+abstract class Element {
+  def contents: Array[String]
+  def height: Int = contents.length
+  def width: Int = if (height == 0) 0 else contents(0).length
+}
+```
+
+In Scala, method is abstract if it does not have implementation. It does not need `abstract` modifier on method declarations. You can also note that if the method does not have any parameters, the method can be defined without empty parentheses.
+We can also implement width and height as fields, instead of methods
+
+```scala
+abstract class Element {
+  def contents: Array[String]
+  val height = contents.length
+  val width = if (height == 0) 0 else contents(0).length
+}
+```
+
+The difference is that field accesses might be slightly faster because the field values are pre-computed when the class is initialized, instead of being computed on method call. The fields require extra memory space in each object. So, it depends on usage profile of a class.
+In Scala, it's possible to leave out all empty parenthese in function calls.
+Implement concrete class of Element
+
+```scala
+class ArrayElement(conts: Array[String]) extends Element {
+  def contents: Array[String] = conts
+}
+```
+
+If you don't use `extends`, Scala compiler implicitly assumes your class extends from `scala.AnyRef` similar to Java's `java.lang.Object`. With this all members of superclass are inherited except the private members. Now with concrete implementation, we can instantiate objects.
+
+```scala
+val ae = new ArrayElement(Array("hello", "world"))
+ae.width // 5
+```
+
+You can prefix a class parameter with `var` to make field reassignable.
+
+```scala
+class LineElement(s: String) extends ArrayElement(Array(s)) {
+  override def width = s.length
+  override def height = 1
+}
+```
+
+To invoke a superclass constructor, you place the argument or arguments you want to pass in parenthese following the name of the superclass.
+
+```scala
+class UniformElement(
+  ch: Char,
+  override val width: Int,
+  override val height: Int
+) extends Element {
+  private val line = ch.toString * width
+  def contents = Array.fill(height)(line)
+}
+
+val e1: Element = new ArrayElement(Array("hello", "world"))
+val ae: ArrayElement = new LineElement("hello")
+val e2: Element = ae
+val e3: Element = new UniformElement('x', 2, 3)
+```
+
+Method invocations on variables and expressions are dynamically bound. The actual method implementation invoked is determined at runtime based on the class of the object, not the type of the variable or expression.
+
+If you want to ensure that a member cannot be overridden by subclasses, you can use `final` modifier to the member. You can also make entire class cannot be subclassed.
+
+```scala
+class ArrayElement extends Element {
+  final override def demo() = {
+    println("ArrayElement's implementation")
+  }
+}
+```
+
+```scala
+class LineElement(s: String) extends Element {
+  val contents = Array(s)
+  override def width = s.length
+  override def height = 1
+}
+```
+
+A factory object contains methods that construct other objects. Such factory object could be created as a companion object of a class Element.
+
+```scala
+object Element {
+  def elem(contents: Array[String]): Element = new ArrayElement(contents)
+  def elem(chr: Char, width: Int, height: Int): Element
+    = new UniformElement(chr, width, height)
+  def elem(line: String): Element = new LineElement(line)
+}
+```
+
+In Scala, every class inherits from a common superclass named `Any`. `Nothing` is a subclass of every other class. The root class `Any` has two subclasses: `AnyVal` is parent class of value classes in Scala. The other subclass of the root class is `AnyRef`. This is base class of all reference classes in Scala. Because Nothing is subtype of every other type, we can use methods like below in flexible ways.
+
+```scala
+def divide(x: Int, y: Int): Int =
+  if (y != 0) x / y
+  else throw new RunTimeException("can't divide by zero")
+```
+
+
+To define a value class, we can extend `AnyVal`.
+
+```scala
+class Dollars(val amount: Int) extends AnyVal {
+  override def toString() = "$" + amount
+}
+class SwissFrancs(val amount: Int) extends AnyVal {
+  override def toString() = amount + " CHF"
+}
+val money = new Dollars(1000)
+money.amount // 1000
+val francs = new SwissFrancs(1000)
+```
+
+## Traits
+
+traits are useful for reuse in Scala. Unlike class inheritance, in which each class must inherit from just one superclass, a class can mix in any number of traits.
+
+```scala
+trait Philosophical {
+  def philosophize() = {
+    println("I consume memory, therefor I am")
+  }
+}
+```
+
+It does not declare a superclass, so like a class, it has the default superclass of `AnyRef`. Once a trait is defined, it can be mixed in to a class using either the `extends` or `with` keywords. Scala programmers mix in traits rather than inherit from them.
+
+```scala
+class Frog extends Philosophical {
+  override def toString = "green"
+}
+```
+
+You can use the `extends` keyword to mix in a trait in which case you implicitly inherit the trait's superclass. Methods inherited from a trait can be used just like methods inherited from a superclass.
+
+```scala
+val frog = new Frog
+frog.philosophize() // I consume memory, therefor I am
+val phil: Philosophical = frog // use Philosophical as a type
+phil.philosophize() // I consume memory, therefor I am
+```
+
+To mix in a trait into a class that explicitly extends a superclass, use `extends` to indicate the superclass and `with` to mix in the trait. The subclass can also override implementation of methods defined in traits.
+
+```scala
+class Animal
+trait HasLegs
+
+class Frog extends Animal with Philosophical with HasLegs {
+  override def toString = "green"
+  override def philosophize() = {
+    println("It ain't easy being " + toString)
+  }
+}
+
+val phrog: Philosophical = new Frog
+phrog.philosophize() // It ain't easy being green
+```
+
+Traits, unlike Java interfaces, can declare fields and maintain state. A trait cannot have any class parameters (parameters passed to primary constructor of a class).
+
+```scala
+class Point(x: Int, y: Int)
+trait NoPoint(x: Int, y: Int) // does not compile
+```
+
+In classes, super calls are statically bound, in traits, they are dynamically bound. If you write `super.toString` in a class, you know exactly which method implementation will be invoked. When you write the same with trait, the method implementation to invoke for the super class is undefined when you define the trait. The implementation to invoke will be determined each time the trait is mixed into a concrete class.
+
+```scala
+class Point(val x: Int, val y: Int)
+
+trait Rectangular {
+  def topLeft: Point
+  def bottomRight: Point
+  def left = topLeft.x
+  def right = bottomRight.x
+  def width = right - left
+}
+
+abstract class Component extends Rectangular {}
+
+class Rectangle(val topLeft: Point, val bottomRight: Point) extends Rectangular {
+  // other methods, it gets few method implementations from trait
+}
+
+val rect = new Rectangle(new Point(1,1), new Point(10,10))
+rect.left // 1
+rect.right // 10
+rect.width // 9
+```
+
+We can define `Ordered` trait that includes `compare` method and then we can use that method to define relational operations for that data type. This trait defines one abstract method, `compare`, which is expected to compare the receiver (this) against another object of the same type.
+
+```scala
+trait Ordered[T] {
+  def compare(that: T): Int
+  def <(that: T): Boolean = (this compare that) < 0
+  def >(that: T): Boolean = (this compare that) > 0
+  def <=(that: T): Boolean = (this compare that) <= 0
+  def >=(that: T): Boolean = (this compare that) >= 0
+}
+class Rational(n: Int, d: Int) extends Ordered[Rational] {
+  def compare(that: Rational) = (this.numer * that.denom) - (that.numer * this.denom)
+}
+val half = new Rational(1, 2)
+val third = new Rational(1, 3)
+half < third // false
+```
+
+Traits let you modify the methods of a class, and they do so in a way that allows you to stack those modifications with each other. Given a class that implements a queue (FIFO), you could define traits to perform modifications such as these:
+- Doubling: double all integers that are put in the queue
+- Incrementing: increment all integers that are put in the queue
+- Filtering: filter out negative integers from a queue
+
+```scala
+abstract class IntQueue {
+  def get(): Int
+  def put(x: Int)
+}
+
+import scala.collection.mutable.ArrayBuffer
+
+class BasicIntQueue extends IntQueue {
+  private val buf = new ArrayBuffer[Int]
+  def get() = buf.remove(0)
+  val put(x: Int) = { buf += x }
+}
+
+// Doubling trait declares superclass, IntQueue means that trait can only be mixed into a 
+// class that also extends IntQueue
+// Thus, Doubling can be mixed into BasicIntQueue but not Rational object.
+trait Doubling extends IntQueue {
+  // super call in trait will work so long as the trait is mixed in after another trait or class that 
+  // gives concrete definitions to the method.
+  abstract override def put(x: Int) = { super.put(2 * x)}
+}
+
+class MyQueue extends BasicIntQueue with Doubling
+val queue = new MyQueue
+queue.put(10)
+queue.get() // 20, due to Doubling trait
+// We can also do following as MyQueue doesn't define any new code.
+val queue = new BasicIntQueue with Doubling
+queue.put(10)
+queue.get() // 20
+
+trait Incrementing extends IntQueue {
+  abstract override def put(x: Int) = { super.put(x + 1) }
+}
+trait Filtering extends IntQueue {
+  abstract override def put(x: Int) = {
+    if (x >= 0) super.put(x)
+  }
+}
+```
+
+With new modifications of `Incrementing` and `Filtering` defined, you can pick and choose which ones you want for a particular queue. The order of mixins is important as well. Traits further to the right take effect first. For example, in following code `Filtering`'s put method is invoked first and then `Incrementing`'s put method.
+
+```scala
+val queue = (new BasicIntQueue with Incrementing with Filtering)
+queue.put(-1); queue.put(0); queue.put(1);
+queue.get() // 1
+queue.get() // 2
+```
+
+If the order is changed, -1 will not be filtered from the queue.
+
+```scala
+val queue = (new BasicIntQueue with Filtering with Incrementing)
+queue.put(-1); queue.put(0); queue.put(1)
+queue.get() // 0
+queue.get() // 1
+queue.get() // 2
+```
+
+In Scala, linearization helps find the precise order of method calls in inheritance hierarchy. In any linearization, a class is always linearized in front of all its superclasses and mixed in traits.
+
+```scala
+class Animal
+trait Furry extends Animal
+trait HasLegs extends Animal
+trait FourLegged extends Animal
+class Cat extends Animal with Furry with FourLegged
+```
+
+Method calls from `Cat` class are resolved in following order. Cat, FourLegged, HasLegs, Furry, Animal, AnyRef, Any.
+Here are some rules whether you should use traits or abstract class.
+
+1. If the behaviour will not be reused, then make it a concrete class. It is not reusable after all.
+2. If it might be reused in multiple, unrelated classes, make it a trait. Only traits can be mixed into different parts of class hierarchy.
+3. If you want to inherit from it in Java code, use an abstract class. Since traits with code do not have a close Java analog, it tends to be awkward to inherit from a trait in a Java class.
+4. If you plan to distribute it in compiled form, and you expect outside groups to write classes inheriting from it, you might lean towards abstract class.
+5. If unknown, starts by making it as a trait.
+
+## Packages and Imports
+
+Scala allows defining packages like Java. The other way you can place code into packages is more like C# namespaces. This syntax is called a *packaging*.
+
+```scala
+package bobsrockets.navigation {
+  class Navigator
+}
+```
+
+Similarly, you can use nested package structure. You can put the class's tests in the same file as the original code, but in different package.
+
+```scala
+package bobsrockets {
+  package navigation {
+    class Navigator
+    package tests {
+      class NavigatorSuite
+    }
+  }
+}
+```
+
+```scala
+package bobsrockets {
+  package navigation {
+    class Navigator {
+      val map = new StarMap
+    }
+    class StarMap
+  }
+  class Ship {
+    // No need to say bobsrockets.navigation.Navigator
+    val nav = new navigation.Navigator
+  }
+  package fleets {
+    class Fleet {
+      // No need to say bobsrockets.Ship
+      def addShip() = { new Ship }
+    }
+  }
+}
+```
+
+A class can be accessed from within its own package without needing a prefix. A package itself can be accessed from its containing package without needing a prefix. When using the curly-braces packaging syntax, all names accessible in scopes outisde the packaging are also available inside it. Scala provides package named `_root_` that is outside any package a user can write. To access `Booster3`, we can use `_root_.launch.Booster3` to access that class.
+
+```scala
+package launch {
+  class Booster3
+}
+package bobsrockets {
+  package navigation {
+    package launch {
+      class Booster1
+    }
+    class MissionControl {
+      val booster1 = new launch.Booster1
+      val booster2 = new bobsrockets.launch.Booster2
+      val booster3 = new _root_.launch.Booster3
+    }
+  }
+  package launch {
+    class Booster2
+  }
+}
+```
+
+Packages and their members can be imported using **import clauses**.
+
+```scala
+pckage bobsdelights
+
+abstract class Fruit (val name: String, val color: String)
+
+object Fruits {
+  object Apple extends Fruit("apple", "red")
+  object Orange extends Fruit("orange", "orange")
+  object Pear extends Fruit("pear", "yellowish")
+  val menu = List(Apple, Orange, Pear)
+}
+```
+
+In other file, you can access them using following.
+
+```scala
+import bobsdelights.Fruit // access fruit object
+import bobsdelights._ // import all members of bobsdelights package
+import bobsdelights.Fruits._ // all members of fruits
+```
+
+In Scala, imports may appear anywhere, may refer to objects in addition to packages, imports let you rename and hide some of the imported members.
+
+```scala
+import Fruits.{Apple, Orange} // import only Apple and Orange from object Fruits
+import Fruits.{Apple => McIntosh, Orange} // Apple is renamed to McIntosh
+import Fruits.{Pear => _, _} // import all members of Fruits except Pear
+```
+
+A clause of form `<original_name> => _` excludes `<original_name>` from the names that are imported.
+Scala adds following imports implicitly to every program.
+
+```scala
+import java.lang._
+import scala._
+import PreDef._
+```
+
+The `PreDef` object contains many definitions of types, methods and implicit conversions that are commonly used on Scala programs. These three import clauses are treated a bit specially in that later imports overshadow earlier ones. For example, `StringBuilder` class is defined in package `scala` and in `java.lang`. `scala`'s import overshadows the `java.lang` import.
+
+### Access modifiers
+
+Scala's access modifiers roughtly follows Java's rules. A member labeled private is visible only inside the class or object that contains the member definition.
+
+```scala
+class Outer {
+  class Inner {
+    private def f() = { println("f") }
+    class InnerMost {
+      f() // ok
+    }
+  }
+  (new Inner).f() // error: f is not accessible
+}
+```
+
+In Scala, the access `(new Inner).f()` is illegal because `f` is declared private in Inner and the access is not from within class Inner.
+In Scala, a `protected` member is only accessible from subclasses of the class in which the member is defined. In Java, such accesses are also possible from other classes in the same package.
+
+```scala
+package p {
+  class Super {
+    protected def f() = { println("f") }
+  }
+  class Sub extends Super {
+    f() // ok
+  }
+  class Other {
+    (new Super).f() // error: f is not accessible
+  }
+}
+```
+
+In Java, the Other class would be permitted to access `f()` method as it is in the same package as Sub.
+Scala has no explicit modifier for public members; Any member not labeled `private` or `protected` is public.
+
+```scala
+package bobsrockets
+
+package navigation {
+  private[bobsrockets] class Navigator {
+    protected[navigation] def useStarChart() = {}
+    class LegOfJourney {
+      private[Navigator] val distance = 100
+    }
+    private[this] var speed = 200
+  }
+}
+package launch {
+  import navigation._
+  object Vehicle {
+    private[launch] val guide = new Navigator
+  }
+}
+```
+
+A modifier of the form `private[X]` or `protected[X]` means that access is private or protected up to X. Such access modifiers give you very fine-grained control over visibility. Scala has access modifier `private[this]` which is accessible only from within the same object that contains the definition.
+
+```scala
+val other = new Navigator
+other.speed // this does not compile
+```
+
+In Scala, there are no static members; instead you can have a companion object that cnotains members that exist only once. Scala's access rules privilege companion objets and classes when it comes to private or protevted accesses. A class shares all its access rights with its companion object and vice versa. An object can access all private members of its companion class.
+
+```scala
+class Rocket {
+  import Rocket.fuel
+  private def canGoHomeagain = fuel > 20
+}
+object Rocket {
+  private def fuel = 10
+  def chooseStrategy(rocket: Rocket) = {
+    if (rocket.canGoHomeAgain)
+      goHome()
+    else
+      pickAStar()
+  }
+  def goHome() = {}
+  def pickAStar() = {}
+}
+```
+
+Each package is allowed to have one **package object**. Any definitions placed in a package object are considered members of the package itself. If you have some helper method you'd like to be in scope for an entire package, put it at the top level of the package.
+
+```scala
+// bobsdelights/package.scala file
+package object bobsdelights {
+  def showFruit(fruit: Fruit) = {
+    import fruit._
+    println(name + "s are " + color)
+  }
+}
+package printmenu
+import bobsdelights.Fruits
+import bobsdelights.showFruit
+object PrintMenu {
+  def main(args: Array[String]) = {
+    for (fruit <- Fruits.menu) {
+      showFruit(fruit)
+    }
+  }
+}
+```
+
+Package objects are used to hold package-wide type aliases and implicit conversions. Package objects are compiled to class files named `package.class` that are located in directory of the package that they augment.
+
+## Case Classes
+
+```scala
+abstract class Expr
+case class Var(name: String) extends Expr
+case class Number(num: Double) extends Expr
+case class UnOp(operator: String, arg: Expr) extends Expr
+case class BinOp(opeartor: String, left: Expr, right: Expr) extends Expr
+```
+
+The bodies of all five classes are empty. Classes with `case` modifier are called *case classes*. It adds a factory method with the name of the class. This means you can write `Var("x")` to construct a `Var` object instead of `new Var("x")`. Second, all arguments in the parameter list of a case class implicitly get a `val` prefix, so they are maintained as fields. The compiler also adds natural implementations of methods `toString`, `hashCode` and `equals` to your class. The compiler also adds a `copy` method to your class for making modified copies. This method is useful for making a new instance of the class that is the same as another one except that one or two attributes are different. You specify the changes you'd like to make by using named parameters.
+
+```scala
+val v = Var("x") // factory methods
+val op = BinOp("+", Number(1), v)
+v.name // get methods
+op.left
+println(op) // toString
+op.copy(operator = "-")
+```
+
+With case classes your objects become a bit larger because additional methods are generated and an implicit field is added for each constructor parameter. These case classes support pattern matching.
+
+```scala
+def simplifyTop(expr: Expr): Expr = expr match {
+  case UnOp("-", UnOp("-", e)) => e
+  case BinOp("+", e, Number(0)) => e
+  case BinOp("*", e, Number(1)) => e
+  case _ => expr
+}
+simplifyTop(UnOp("-", UnOp("-", Var("x"))))
+```
+
+A **pattern match** includes a sequence of alternatives, each starting with the keyword case. A match expression is evaluated by trying each of the patterns in the order they are written. The first pattern that matches is selected, and the part following the arrow is selected and executed. The wildcard pattern (_) matches every value
+
+Match expression can be compared with Java switch statement. There are few differences. Match is an expression and always results in a value. Match never fall through into the next case. If none of the patterns match, an exception named `MatchError` is thrown. This means you have to make sure that all cases are covered.
+
+With Pattern matching, we can use different kinds of patterns:
+- wild card pattern that matches everything
+- constant pattern that matches literal or any constant value like 5, true, "hello"
+- Constructor patterns
+- Sequence patterns, you can also match against the elements of the sequence.
+- Tuple pattern
+- Typed patterns
+
+```scala
+x match {
+  case 5 => "five"
+  case Nil => "empty list" // constant
+  case _ => "something else" // wild card
+}
+expr match {
+  case BinOp("+", e, Number(0)) => println("a deep match") // constructor pattern
+  case _ =>
+}
+expr match {
+  case List(0, _, _) => println("found it") // sequence pattern with 3 elements and first element zero
+  case List(0, _*) => println("list with first 0 and any number of elements")
+  case (a, b, c) => println("tuple with 3 elements")
+}
+// Typed pattern
+x match {
+  case s: String => s.length
+  case m: Map[_, _] => m.size
+  case _ => -1
+}
+```
+
+To test whether an expression `expr` has type String, you write `expr.isInstanceOf[String]`. To cast to type String, you use `expr.asInstanceOf[String]`. These two methods are pre-defined in class `Any` It is better to use pattern match with typed pattern.
+
+Now, we can check whether particular object is a `Map` of some data type key and other datatype value. However, due to Java style type-erasure, we cannot check whether Map is a `Map[Int, Int]`. At runtime, Scala compiler doesn't know the type of typed parameters. The only exception to type erasure is arrays because they are handled specially in Java and Scala.
+
+```scala
+def isIntIntMap(x: Any) = x match {
+  case m: Map[Int, Int] => true
+  case _ => false
+}
+isIntIntMap(Map(1 -> 1)) // true
+isIntIntMap(Map("abc" -> "abc")) // true
+
+def isStringArray(x: Any) = x match {
+  case a: Array[String] => "yes"
+  case _ => "no"
+}
+val as = Array("abc")
+val ai = Array(1,2,3)
+isStringArray(ai) // no
+```
+
+Id you are given a task of formulating a simplification rule that replaces sum expressions with two identical operands such as `e + e` by multiplication of two `e * 2`, you can try like below.
+
+```scala
+def simplifyAdd(e: Expr) = e match {
+  case BinOp("+", x , x) => BinOp("*", x, Number(2)) // fails
+  case _ => e
+}
+```
+
+This fails because Scala restricts patterns to be linear: a pattern variable may only appear once in a pattern. However, **pattern guards** can help with this. If pattern guard is present, the match succeeds only if guard evaluates to true.
+
+```scala
+def simplifyAdd(e: Expr) = e match {
+  case BinOp("+", x, y) if x == y => BinOp("*", x, Number(2)) // ok
+  case _ => e
+}
+```
+
+Whenver you write a pattern match, you need to make sure you have covered all cases. You can enlist the help of Scala compiler in detecting missing combinations of patterns in a match expression. This is not possible as case classes can be defined anywhere and a new Expr class can be created. A **sealed class** cannot have any new subclases added except the ones in the same file. If you write hierarchy of classes to be pattern matched, you should consider sealing them.
+
+``scala
+sealed abstract class Expr
+case class Var(name: String) extends Expr
+case class Number(num: Double) extends Expr
+case class UnOp(operator: String, arg: Expr) extends Expr
+case class BinOp(operator: String, left: Expr, right: Expr) extends Expr
+```
+
+Now define pattern match where some possible cases are left out.
+
+```scala
+def describe(e: Expr): String = e match {
+  case Number(_) => "a number"
+  case Var(_) => "a variable"
+}
+```
+
+When compiling, you will get warning message "match is not exhaustive!" which tells you that there is a possibility of `MatchError`. Another alternative is to add `@unchecked` annotation to the selector expression of the match to avoid not defining all possible cases.
+
+```scala
+def describe(e: Expr): String = (e: @unchecked) match {
+  case Number(_) => "a number"
+  case Var(_) => "a variable"
+}
+```
+
+Scala has standard type named `Option` for optional values. Such a vaue can be either `Some(x)` or `None` which represents missing value. 
+
+```scala
+var capitals = Map("France" -> "Paris", "Japan" -> "Tokyo")
+capitals get "France" // Some(Paris)
+capitals get "North Pole" // None
+
+def show(x: Option[String]) = x match {
+  case Some(s) => s
+  case None => "?"
+}
+show (capitals get "Japan") // Tokyo
+show(capitals get "North Pole") // ?
+```
+
+This Option types are good for programs where in Java you had to check for the value to be null using if statements. Scala encourages the use of Option to indicate an optional value. 
+You can use pattern matching to deconstruct a case class or a tuple.
+
+```scala
+val exp = new BinOp("*", Number(5), Number(1))
+val BinOp(op, left, right) = exp // op: *, left: Number(5.0), right: Number(1.0)
+```
+
+A sequence of cases gives you a **partial function**. If you apply such a function on a value it does not support, it will generate a run-time exception.
+
+```scala
+val second: List[Int] => Int = {
+  case x :: y :: _ => y
+}
+```
+
+Above function will succeed if you pass it a three-element list, but not if you pass it an empty list. If you want to chcek whether a partial function is defined, you can use `isDefinedAt` method.
+
+```scala
+second(List(5,6,7)) // 6
+second(List()) // MatchError
+second.isDefinedAt(List(5,6,7)) // true
+```
+
+In general, you should try to work with complete functions whenever possible, because partial functions allow for runtime errors that compiler cannot help you with.
+We can also use pattern in a for expression.
+
+```scala
+for ((country, city) <- capitals)
+  println("The capital of " + country + " is " + city)
+```
+
+```scala
+val results = List(Some("apple"), None, Some("orange"))
+for (Some(fruit) <-  results) println(fruit) // apple, orange
+```
+
