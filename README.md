@@ -17,6 +17,8 @@ anotherName = "Ishit" // not allowed
 
 [Scala Basics](notes/basics.md)
 
+[Collections](notes/oop.md)
+
 ## Using SBT
 
 ```shell
