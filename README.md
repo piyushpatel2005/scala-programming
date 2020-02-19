@@ -17,7 +17,9 @@ anotherName = "Ishit" // not allowed
 
 [Scala Basics](notes/basics.md)
 
-[Collections](notes/oop.md)
+[Object Oriented featues of Scala](notes/oop.md)
+
+[Collections in Scala](notes/collections.md)
 
 ## Using SBT
 

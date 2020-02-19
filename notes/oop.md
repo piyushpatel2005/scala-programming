@@ -886,3 +886,161 @@ Japan.Yen from US.Dollar * 100
 Europe.Euro from res1
 US.Dollar from res2
 ```
+
+## Implicit Conversions
+
+You cannot modify libraries and code written by other people out there. To alleviate this, Scala has implicit conversions and parameters. Implicit conversions are helpful for working with two bodies of software that were developed without each other in mind. Implicit conversions help by reducing the number of explicit conversions that are needed from one type to another. Without implicit conversions, a Scala program that uses Swing must use inner classes like Java.
+
+```scala
+val button = new JButton
+button.addActionListener (new ActionListener {
+  def actionPerformed(event: ActionEvent) = {
+    println("Button pressed")
+  }
+})
+```
+
+We can reduce the coding using function listerals.
+
+```scala
+button.addActionListener(
+  (_: ActionEvent) => println("Button pressed")
+)
+```
+
+But above code doesn't work because `addActionListener` expects `ActionListener` and we passed function. With implicit conversions, this can be made to work.
+
+```scala
+// one argument method that takes function and returns ActionListener
+implicit def function2ActionListener(f: ActionEvent => Unit) =
+  new ActionListener {
+    def actionPerformed(event: ActionEvent) = f(event)
+  }
+```
+
+Now following two code versions work. The second version works beacuse `function2ActionListener` is marked as implicit, it can be left out and the compiler will insert it automatically.
+
+```scala
+// without implicit
+button.addActionListener (
+  function2ActionListener (
+    (_: ActionEvent) => println("Button pressed")
+  )
+)
+// with implicit conversion
+button.addActionListener (
+  (_: ActionEvent) => println("Button pressed")
+)
+```
+
+- Implicit definitions are those that the compiler is allowed to insert into a program in order to fix any of its type errors. For example, if `x + y` does not type check, the compiler might change it to `conver(x) + y`, where convert is some available implicit conversion. 
+- Only definitions marked implicit are available. An inserted implicit conversion must be in scope as a single identifier, or be associated with the source or target type of conversion. Therefore, you must bring implicit conversion in scope. 
+- The compiler will also look for impliciit definitions in the companion object of the scope or expected target types of the conversion. If you're attempting to pass a Dollar to method that takes Euro object, the source is Dollar and target is Euro. Implicit conversion could be packaged in either object or either class, Dollar or Euro.
+- Only one implicit is inserted. The compiler will never rewrite `x + y` to `conver1(convert2(x)) + y`. This could increase compile time.
+- Explicits are tried first. The compiler will not change the code that already works.
+- Implicit conversions can have arbitrary names. If one object defines two conversions and you want to use only one of them, then you need to know the explicit name of the conversion method to import that one only.
+- There are three places implicits are used in language: conversion to an expected type, conversions of the receiver of a selection and implicit parameters
+
+Implicit conversion to an expected type is the first place the compiler will use implicits. For example, normally a double cannot be used as an integer, but with implicit function it can be.
+
+```scala
+val i: Int = 3.5 // Error
+implicit def doubleToInd(x: Double) = x.toInt
+val i: Int = 3.5 // OK
+```
+
+Implicit conversions also apply to the receiver of a method call, the object on which the method is invoked.
+
+```scala
+class Rational(n: Int, d: Int) {
+  def + (that: Rational): Rational = ...
+  def + (that: Int): Rational = ...
+}
+
+val oneHalf = new Rational(1, 2)
+oneHalf + oneHalf
+oneHalf + 1
+1 + oneHalf // Error
+implicit def intToRational(x: Int) = new Rational(x, 1)
+1 + oneHalf // OK
+```
+
+The other major use of implicit conversions is to simulate adding new syntax. For example, Maps can be created using arrow syntax (->). When you see someone calling methods that appear not to exist in the receiver class, they are probably using implicits. If you see a class named RichSomething, that class is likely adding syntax like methods to type Something.
+
+**Implicit classes** were added in Scala 2.10 to make it easier to write rich wrapper classes. An implicit class is a class that is preceded by `implicit` keyword. For such class, compiler generates an implicit conversion from class's constructor parameter to the class itself. For example, if you have Rectangle class which you use frequently, then you need to use rich wrappers so you can more easily construct it.
+
+```scala
+case class Rectangle (width: Int, height: Int)
+implicit class RectangleMaker(width: Int) {
+  def x(height: Int) = Rectangle(width, height)
+}
+// Following conversion is automatically generated
+implicit def RectangleMaker(width: Int) = new RectangleMaker(width)
+// you can use it like this
+val myRectangle = 3 x 4
+```
+
+Since Int has no method named `x`, it will look for implicit conversion from Int to something and will find RectangleMaker conversion which has that method.
+An implicit class cannot be a case class, and its constructor must have exactly one parameter. An implicit class must be located within the some other object, class or trait.
+
+The compiler will sometimes replace `someCall(a)` with `someCall(a)(b)` or `new SomeClass(a)` thereby adding a missing parameter list to complete a function call. If someCall is missing last parameter list takes three parameters, the compiler might replace `someCall(a)` with `someCall(a)(b,c,d)`. For this last three paramters must be marked implicit where they are defined, but also the last parameter list in someCall be defined as implicit.
+
+```scala
+class PreferredPrompt(val preference: String)
+object Greeter {
+  def greet(name: String)(implicit prompt: PreferredPrompt) = {
+    println("Welcome, " + name + ". The system is ready.")
+    println(prompt.preference)
+  }
+}
+val bobsPrompt = new PreferredPrompt("relax> ")
+Greeter.greet("Bob")(bobsPrompt)
+// To let compiler supply the parameter implicitly, define a variable of expected type in PreferredPrompt
+object JoesPrefs {
+  implicit val prompt = new PreferredPrompt("Yes, master> ")
+}
+import JoesPrefs._
+Greeter.greet("Joe")
+
+// two implicit parameters example
+class PreferredPrompt(val prefernence: String)
+class PreferredDrink(val preference: String)
+object Greeter {
+  def greet(name: String)(implicit prompt: PreferredPrompt, drink: PreferredDrink) = {
+    println(s"Welcome, $name. The system is ready.")
+    println("Enjoy your cup of " + drink.preference + ".")
+    println(prompt.preference)
+  }
+}
+object JoesPrefs {
+  implicit val prompt = new PreferredPrompt("Yes, master> ")
+  implicit val drink = new PreferredDrink("tea")
+}
+// another example of finding max
+def maxListOfOrdering[T](elements: List[T])(implicit ordering: Ordering[T]): T =
+  elements match {
+    case List() => throw new IllegalArgumentException("empty list")
+    case List(x) => x
+    case x: rest => 
+      val maxRest = maxListOfOrdering(rest)(ordering)
+      if (ordering.gt(x, maxRest)) x
+      else maxRest
+  }
+maxListOfOrdering(List(2,3,10,3)) // 10
+```
+
+When you use implicit on a parameter, the compiler will not only try to supply that parameter with an implicit value, but the compiler will also use that parameter as an available implicit in the body of the method. If we have a method implicitly like `def implicitly[T](implicit t:T) = t`, then the method can change as below.
+
+```scala
+def maxList[T: Ordering](elements: List[T]): T =
+  elements match {
+    case List() => throw new IllegalArgumentException("empty list")
+    case List(x) => x
+    case x: rest => 
+      val maxRest = maxList(rest)
+      if (implicitly[Ordering[T]].gt(x, maxRest)) x
+      else maxRest
+  }
+```
+
+If multiple implicit conversions are in scope, mostly Scala refuses to insert a conversion in such a case. When implicit conversions are ambiguous, they are not applied. 
