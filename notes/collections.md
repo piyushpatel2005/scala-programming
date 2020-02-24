@@ -511,4 +511,31 @@ a3.reverse
 ```
 
 Scala arrays are represented just like Java array, but additional features are added using implicit conversions. Thus arrays are compatible with sequences because there's an implicit conversion from Array to WrappedArray.
-407
+
+An **iterator** is not a collection, but rather a way to access the elements of a collection one by one. If there is no more element to return, a call to `next` method returns NoSuchElementException.
+
+```scala
+while (it.hasNext)
+  println(it.next())
+```
+
+Iterators in Scala also provide analogues of most of the methods in the Traversable, Iterable and Seq traits.
+
+```scala
+val it = Iterator("a", "number", "of", "words")
+val res = it.map(_.length)
+res foreach println
+it.next() // NoSuchElementException
+```
+
+TraversableOnce objects can be traversed using foreach, but the state of that object after the traversal is not specified.
+If you want to access existing Java collection, as if it were a Scala collection, we can do so using following. Scala offers implicit conversions between all major collection types in JavaConversions object. To enable these conversions, import like this.
+
+```scala
+import collection.JavaConversions._ // now automatic conversions between Scala collections and their corresponding Java collections
+import collection.mutable._
+val jul: java.util.List[Int] = ArrayBuffer(1,2,3)
+val buf: Seq[Int] = jul
+val m: java.util.Map[String, Int] = HashMap("abc" -> 1, "hello" -> 2)
+```
+
